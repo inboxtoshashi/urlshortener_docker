@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Link Shorter</title>
+		<style>
+			body {
+			  background-image: url('static/images/background.jpg');
+			}
+		</style>
+	</head>
+	<body>
+		<form method="POST" action="/">
+			<label style="color: yellow">Enter Your Number</label>
+			<input type="text" name="input"><br/><br/>
+			<center>
+				<input type="submit">
+			</center>
+		</form>
+		<h3 style="color: skyblue">Your new value is : &nbsp;{{output}}</h3>
+		<br/>
+		<form method="POST" action="/decode">
+			<label style="color: yellow">Enter Your Number</label>
+			<input type="text" name="input"><br/><br/>
+			<center>
+				<input type="submit">
+			</center>
+		</form>
+		<h3 style="color: skyblue">Your new value is : &nbsp;{{output1}}</h3>
+	</body>
+</html>

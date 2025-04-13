@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Result</title>
+	</head>
+	<body>
+		<h3 style = "color : brown"> User name is : {{dic.name}} </h3>
+		<h3 style = "color : brown"> Mobile Number : {{dic['mob']}} </h3>
+		<h3 style = "color : brown"> Atm Holder : {{dic.atm}} </h3>
+		{% for name in lists %}
+			Hi {{ name }}<br/>
+		{% endfor %}
+	</body>
+</html>

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: urlshortener
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: appsecret
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: backend.dockerfile
+    ports:
+      - "5001:5001"
+    depends_on:
+      - db
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_USER=appuser
+      - MYSQL_PASSWORD=appsecret
+      - MYSQL_DATABASE=urlshortener
+
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: frontend.dockerfile
+    ports:
+      - "8080:80"
+
