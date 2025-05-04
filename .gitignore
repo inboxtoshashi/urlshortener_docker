@@ -1,0 +1,13 @@
+*.bash_history
+*.bashrc
+*.gitignore.swp
+*.profile
+*.sudo_as_admin_successful
+*.viminfo
+*.bash_logout
+*.cache
+*.lesshst
+*.ssh
+*.vim
+urlshortener_docker
+urlshortener
