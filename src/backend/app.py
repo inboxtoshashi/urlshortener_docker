@@ -4,7 +4,11 @@ import time
 import MySQLdb
 
 template_path = os.path.abspath('../frontend/templates')
-app = Flask(__name__, template_folder='templates')
+app = Flask(
+    __name__,
+    template_folder='templates',
+    static_folder='static'
+)
 
 db = None
 for i in range(10):

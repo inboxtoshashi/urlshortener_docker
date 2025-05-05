@@ -30,6 +30,7 @@ services:
       - MYSQL_DATABASE=urlshortener
     volumes:
       - ./src/frontend/templates:/app/templates
+      - ./src/frontend/static:/app/static
 
   frontend:
     build:
