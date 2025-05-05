@@ -24,7 +24,7 @@ services:
     depends_on:
       - db
     environment:
-      - MYSQL_HOST=db
+      - MYSQL_HOST=mysql-db
       - MYSQL_USER=appuser
       - MYSQL_PASSWORD=appsecret
       - MYSQL_DATABASE=urlshortener
