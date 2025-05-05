@@ -1,15 +1,10 @@
-from flask import Flask, render_template, request
-import os
+from flask import Flask, render_template, request, redirect
 import time
 import MySQLdb
 
-template_path = os.path.abspath('../frontend/templates')
-app = Flask(
-    __name__,
-    template_folder='templates',
-    static_folder='static'
-)
+app = Flask(__name__, template_folder='templates', static_folder='static')
 
+# Attempt DB connection with retries
 db = None
 for i in range(10):
     try:
@@ -19,10 +14,10 @@ for i in range(10):
             passwd="appsecret",
             db="urlshortener"
         )
-        print("DB connected successfully.")
+        print("✅ DB connected successfully.")
         break
     except MySQLdb.OperationalError as e:
-        print(f"Waiting for DB... attempt {i+1}/10 — {e}")
+        print(f"❌ Waiting for DB... attempt {i+1}/10 — {e}")
         time.sleep(3)
 else:
     raise Exception("Database connection failed after 10 tries.")
@@ -32,30 +27,28 @@ else:
 def short():
     cursor = db.cursor()
     if request.method == 'POST':
-        url1 = request.form['url']
-        converter = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        original_url = request.form['url']
+        charset = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-        # Insert the original URL first
-        cursor.execute("INSERT INTO urls(original_url, short_code) VALUES (%s, '')", [url1])
+        # Insert URL with placeholder short code
+        cursor.execute("INSERT INTO urls(original_url, short_code) VALUES (%s, '')", [original_url])
         db.commit()
 
-        # Get last inserted id
         cursor.execute("SELECT LAST_INSERT_ID()")
-        data = cursor.fetchone()
-        record_id = int(data[0])
+        row_id = int(cursor.fetchone()[0])
 
-        # Generate short code from ID
         short_code = ''
-        while record_id:
-            short_code += converter[record_id % 62]
-            record_id //= 62
+        while row_id:
+            short_code += charset[row_id % 62]
+            row_id //= 62
         short_code = ''.join(reversed(short_code))
 
-        # Update the row with generated short code
         cursor.execute("UPDATE urls SET short_code = %s WHERE id = LAST_INSERT_ID()", [short_code])
         db.commit()
 
-        short_url = f"http://127.0.0.1:5001/decode/{short_code}"
+        # ✅ Use dynamic IP from incoming request
+        short_url = request.host_url.rstrip('/') + "/decode/" + short_code
+
         return render_template('index.html', output=short_url)
     else:
         return render_template('index.html', output='')
@@ -65,16 +58,21 @@ def short():
 def decode():
     cursor = db.cursor()
     if request.method == 'POST':
-        short_code = request.form['pattern']
-        short_code = short_code.replace('/decode/', '')
+        input_val = request.form.get('pattern', '').strip()
 
-        cursor.execute("SELECT original_url FROM urls WHERE short_code = %s", [short_code])
+        if '/decode/' in input_val:
+            input_val = input_val.split('/decode/')[-1]
+
+        if not input_val:
+            return render_template('index.html', output1='Invalid input.')
+
+        cursor.execute("SELECT original_url FROM urls WHERE short_code = %s", [input_val])
         result = cursor.fetchone()
 
         if result:
             return render_template('index.html', output1=result[0])
         else:
-            return render_template('index.html', output1="Not Found")
+            return render_template('index.html', output1='Not Found')
     else:
         return render_template('index.html', output1='')
 
@@ -85,10 +83,10 @@ def redirect_short(short_code):
     cursor.execute("SELECT original_url FROM urls WHERE short_code = %s", [short_code])
     result = cursor.fetchone()
 
-    if result:
+    if result and result[0]:
         return render_template('redirect.html', url=result[0])
     else:
-        return render_template('index.html', output='')
+        return render_template('index.html', output='Short URL not found.')
 
 
 @app.route('/health')
