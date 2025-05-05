@@ -3,9 +3,8 @@ import os
 import time
 import MySQLdb
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../frontend/templates/')
 
-# Retry logic to ensure DB is up before starting the app
 for i in range(10):
     try:
         db = MySQLdb.connect(
@@ -47,9 +46,9 @@ def short():
         db_connection.commit()
 
         short_url = f"http://127.0.0.1:5001/decode/{output}"
-        return render_template('shortner.html', output=short_url)
+        return render_template('index.html', output=short_url)
     else:
-        return render_template('shortner.html', output='')
+        return render_template('index.html', output='')
 
 
 @app.route('/decode', methods=['GET', 'POST'])
@@ -74,9 +73,9 @@ def decode():
 
         cursor.execute("SELECT url FROM Url WHERE UrlId = %s", (output,))
         patternUrl = cursor.fetchone()[0]
-        return render_template('shortner.html', output1=patternUrl)
+        return render_template('index.html', output1=patternUrl)
     else:
-        return render_template('shortner.html', output1='')
+        return render_template('index.html', output1='')
 
 
 @app.route('/decode/<patternUrl>', methods=['GET'])
@@ -97,7 +96,7 @@ def redirect_short(patternUrl):
         original_url = cursor.fetchone()[0]
         return render_template('redirect.html', url=original_url)
     except:
-        return render_template('shortner.html', output='')
+        return render_template('index.html', output='')
 
 
 if __name__ == '__main__':
