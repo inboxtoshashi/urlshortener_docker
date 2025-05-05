@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request
 import os
 import time
 import MySQLdb
 
-app = Flask(__name__, template_folder='../frontend/templates/')
+template_path = os.path.abspath('../frontend/templates')
+app = Flask(__name__, template_folder='templates')
 
+db = None
 for i in range(10):
     try:
         db = MySQLdb.connect(
@@ -13,7 +15,6 @@ for i in range(10):
             passwd="appsecret",
             db="urlshortener"
         )
-        db.close()
         print("DB connected successfully.")
         break
     except MySQLdb.OperationalError as e:
@@ -25,27 +26,32 @@ else:
 
 @app.route('/', methods=['GET', 'POST'])
 def short():
-    cursor = db_connection.cursor()
+    cursor = db.cursor()
     if request.method == 'POST':
-        converter = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
         url1 = request.form['url']
-        cursor.execute("INSERT INTO Url(url) VALUES(%s)", [url1])
-        db_connection.commit()
+        converter = list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-        cursor.execute("SELECT MAX(UrlId) FROM Url")
+        # Insert the original URL first
+        cursor.execute("INSERT INTO urls(original_url, short_code) VALUES (%s, '')", [url1])
+        db.commit()
+
+        # Get last inserted id
+        cursor.execute("SELECT LAST_INSERT_ID()")
         data = cursor.fetchone()
-        UrlId = int(data[0])
+        record_id = int(data[0])
 
-        output = ''
-        while UrlId:
-            output += converter[UrlId % 62]
-            UrlId = int(UrlId / 62)
-        output = ''.join(reversed(output))
+        # Generate short code from ID
+        short_code = ''
+        while record_id:
+            short_code += converter[record_id % 62]
+            record_id //= 62
+        short_code = ''.join(reversed(short_code))
 
-        cursor.execute("UPDATE Url SET generatedUrl = %s WHERE UrlId = %s", (output, data))
-        db_connection.commit()
+        # Update the row with generated short code
+        cursor.execute("UPDATE urls SET short_code = %s WHERE id = LAST_INSERT_ID()", [short_code])
+        db.commit()
 
-        short_url = f"http://127.0.0.1:5001/decode/{output}"
+        short_url = f"http://127.0.0.1:5001/decode/{short_code}"
         return render_template('index.html', output=short_url)
     else:
         return render_template('index.html', output='')
@@ -53,55 +59,39 @@ def short():
 
 @app.route('/decode', methods=['GET', 'POST'])
 def decode():
-    cursor = db_connection.cursor()
+    cursor = db.cursor()
     if request.method == 'POST':
-        UrlId = request.form['pattern']
-        try:
-            UrlId = UrlId[UrlId.find('/decode/'):]
-            UrlId = UrlId.replace('/decode/', '')
-        except:
-            pass
+        short_code = request.form['pattern']
+        short_code = short_code.replace('/decode/', '')
 
-        output = 0
-        for i in UrlId:
-            if 'a' <= i <= 'z':
-                output = (output * 62) + (ord(i) - ord('a'))
-            elif 'A' <= i <= 'Z':
-                output = (output * 62) + (ord(i) - ord('A') + 26)
-            elif '0' <= i <= '9':
-                output = (output * 62) + (ord(i) - ord('0') + 52)
+        cursor.execute("SELECT original_url FROM urls WHERE short_code = %s", [short_code])
+        result = cursor.fetchone()
 
-        cursor.execute("SELECT url FROM Url WHERE UrlId = %s", (output,))
-        patternUrl = cursor.fetchone()[0]
-        return render_template('index.html', output1=patternUrl)
+        if result:
+            return render_template('index.html', output1=result[0])
+        else:
+            return render_template('index.html', output1="Not Found")
     else:
         return render_template('index.html', output1='')
 
 
-@app.route('/decode/<patternUrl>', methods=['GET'])
-def redirect_short(patternUrl):
-    cursor = db_connection.cursor()
-    UrlId = patternUrl
-    output = 0
-    for i in UrlId:
-        if 'a' <= i <= 'z':
-            output = (output * 62) + (ord(i) - ord('a'))
-        elif 'A' <= i <= 'Z':
-            output = (output * 62) + (ord(i) - ord('A') + 26)
-        elif '0' <= i <= '9':
-            output = (output * 62) + (ord(i) - ord('0') + 52)
+@app.route('/decode/<short_code>', methods=['GET'])
+def redirect_short(short_code):
+    cursor = db.cursor()
+    cursor.execute("SELECT original_url FROM urls WHERE short_code = %s", [short_code])
+    result = cursor.fetchone()
 
-    cursor.execute("SELECT url FROM Url WHERE UrlId = %s", (output,))
-    try:
-        original_url = cursor.fetchone()[0]
-        return render_template('redirect.html', url=original_url)
-    except:
+    if result:
+        return render_template('redirect.html', url=result[0])
+    else:
         return render_template('index.html', output='')
+
+
+@app.route('/health')
+def health():
+    return "OK", 200
 
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
 
-@app.route('/health')
-def health():
-    return "OK", 200

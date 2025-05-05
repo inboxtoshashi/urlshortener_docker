@@ -28,6 +28,8 @@ services:
       - MYSQL_USER=appuser
       - MYSQL_PASSWORD=appsecret
       - MYSQL_DATABASE=urlshortener
+    volumes:
+      - ./src/frontend/templates:/app/templates
 
   frontend:
     build:
