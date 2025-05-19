@@ -14,23 +14,18 @@
       <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
   </head>
   <body>
-
     <div class="container">
       <ul class="nav nav-tabs">
         <li class="active"><a data-toggle="tab" href="#home">Home</a></li>
         <li><a data-toggle="tab" href="#menu1">Short Url</a></li>
         <li><a data-toggle="tab" href="#menu2">Get Old Url</a></li>
       </ul>
-
       <div class="tab-content">
-
         <div id="home" class="tab-pane fade in active">
           <!-- home -->
         </div>
-
         <div id="menu1" class="tab-pane fade">
-
-          <form method="POST" action="http://3.95.160.177:5001/">
+          <form method="POST" action="/">
             <h2 style="color: silver">Enter Your URL</h2>
             <input type="text" name="url"><br/><br/>
             <center>
@@ -38,20 +33,16 @@
             </center>
           </form>
           <h2 style="color: silver">Your generated URL is : &nbsp;
-            <a href = "{{output}}">{{output}}</a></h2>
-
+            <a href = "{{output}}">{{output}}</a>
+          </h2>
         </div>
-
         <div id="menu2" class="tab-pane fade">
-          
             <form method="POST" action="/decode">
               <input type="text" name="pattern">
               <input type="submit">
               <h2 style="color: silver">Your Original URL is : &nbsp;{{output1}}</h2>
             </form>
-
         </div>
-
       </div>
     </div>
   </body>
