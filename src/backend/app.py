@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect
 import time
 import MySQLdb
+from urllib.parse import urlparse, urlunparse
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -46,8 +47,14 @@ def short():
         cursor.execute("UPDATE urls SET short_code = %s WHERE id = LAST_INSERT_ID()", [short_code])
         db.commit()
 
-        # ✅ Use dynamic IP from incoming request
-        short_url = request.host_url.rstrip('/') + "/decode/" + short_code
+        # Use dynamic IP from incoming request, fixed port 9090
+        parsed_url = urlparse(request.host_url)
+        short_url = urlunparse((
+            parsed_url.scheme,              # e.g. http
+            f"{parsed_url.hostname}:9090",  # hostname + fixed port 9090
+            f"/decode/{short_code}",        # path
+            '', '', ''                      # params, query, fragment
+        ))
 
         return render_template('index.html', output=short_url)
     else:
@@ -85,6 +92,8 @@ def redirect_short(short_code):
 
     if result and result[0]:
         return render_template('redirect.html', url=result[0])
+        # or uncomment below to redirect directly
+        # return redirect(result[0])
     else:
         return render_template('index.html', output='Short URL not found.')
 
@@ -96,4 +105,3 @@ def health():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
-
