@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db:
     build:
@@ -14,6 +16,8 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     restart: unless-stopped
+    networks:
+      - monitoring
 
   backend:
     build:
@@ -33,6 +37,8 @@ services:
       - ./src/frontend/templates:/app/templates
       - ./src/frontend/static:/app/static
     restart: unless-stopped
+    networks:
+      - monitoring
 
   frontend:
     build:
@@ -42,6 +48,12 @@ services:
     ports:
       - "9090:80"
     restart: unless-stopped
+    networks:
+      - monitoring
 
 volumes:
   mysql-data:
+
+networks:
+  monitoring:
+    external: true
