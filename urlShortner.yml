@@ -7,17 +7,23 @@ services:
       dockerfile: db.dockerfile
     container_name: mysql-db
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: urlshortener
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: appsecret
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-urlshortener}
+      MYSQL_USER: ${MYSQL_USER:-appuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-appsecret}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     restart: unless-stopped
     networks:
       - monitoring
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
   backend:
     build:
@@ -25,20 +31,30 @@ services:
       dockerfile: backend.dockerfile
     container_name: url-shortener-backend
     ports:
-      - "5001:5001"
+      - "${BACKEND_PORT:-5001}:5001"
+      - "9100:9100"  # Prometheus metrics
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
-      - MYSQL_HOST=mysql-db
-      - MYSQL_USER=appuser
-      - MYSQL_PASSWORD=appsecret
-      - MYSQL_DATABASE=urlshortener
+      - MYSQL_HOST=${MYSQL_HOST:-mysql-db}
+      - MYSQL_USER=${MYSQL_USER:-appuser}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-appsecret}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-urlshortener}
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - PUBLIC_URL=${PUBLIC_URL:-}
     volumes:
       - ./src/frontend/templates:/app/templates
       - ./src/frontend/static:/app/static
     restart: unless-stopped
     networks:
       - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
 
   frontend:
     build:
@@ -46,14 +62,23 @@ services:
       dockerfile: frontend.dockerfile
     container_name: url-shortener-frontend
     ports:
-      - "9090:80"
+      - "${FRONTEND_PORT:-9090}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
 volumes:
   mysql-data:
 
 networks:
   monitoring:
-    external: true
+    driver: bridge
