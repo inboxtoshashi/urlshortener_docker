@@ -72,7 +72,14 @@ def short():
             # First, get the next auto-increment ID without inserting
             cursor.execute("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'urls'", [os.getenv('MYSQL_DATABASE', 'urlshortener')])
             result = cursor.fetchone()
-            row_id = int(result['AUTO_INCREMENT'])
+            
+            if not result or result.get('AUTO_INCREMENT') is None:
+                # Fallback: count existing rows and add 1
+                cursor.execute("SELECT COUNT(*) as count FROM urls")
+                count_result = cursor.fetchone()
+                row_id = (count_result['count'] if count_result else 0) + 1
+            else:
+                row_id = int(result['AUTO_INCREMENT'])
             
             # Generate short code from the ID
             short_code = ''
@@ -80,7 +87,7 @@ def short():
             while temp_id:
                 short_code += charset[temp_id % 62]
                 temp_id //= 62
-            short_code = ''.join(reversed(short_code))
+            short_code = ''.join(reversed(short_code)) if short_code else 'a'
             
             # Insert with the generated short code
             cursor.execute("INSERT INTO urls(original_url, short_code) VALUES (%s, %s)", [original_url, short_code])
