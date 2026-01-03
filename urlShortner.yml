@@ -32,7 +32,7 @@ services:
     container_name: url-shortener-backend
     ports:
       - "${BACKEND_PORT:-5001}:5001"
-      - "9100:9100"  # Prometheus metrics
+      - "9101:9101"  # Prometheus metrics (9100 is used by node_exporter)
     depends_on:
       db:
         condition: service_healthy

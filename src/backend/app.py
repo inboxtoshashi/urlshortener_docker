@@ -155,7 +155,7 @@ def redirect_short(short_code):
 
 # Entry point
 if __name__ == '__main__':
-    prometheus_port = int(os.getenv('PROMETHEUS_PORT', 9100))
+    prometheus_port = int(os.getenv('PROMETHEUS_PORT', 9101))
     start_http_server(prometheus_port)  # Prometheus metrics
     print(f"📊 Prometheus metrics server started on port {prometheus_port}")
     app.run(host='0.0.0.0', port=5001)
